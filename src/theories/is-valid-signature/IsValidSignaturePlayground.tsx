@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  useAccount,
-  useConnect,
-  useDisconnect,
-  useProvider,
-  useSigner,
-} from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
+import { injected, useAccount, useConnect, useDisconnect } from "wagmi";
 
 import { ERC1271_MAGIC_VALUE } from "./constants.general";
 import { useIsValidSignaturePlayground } from "./useIsValidSignaturePlayground";
@@ -74,18 +67,12 @@ const ResultMessage: React.FC<{ value: string | null; error: string | null; matc
 
 export const IsValidSignaturePlayground: React.FC = () => {
   const { address, isConnected } = useAccount();
-  const provider = useProvider();
-  const { connect, isLoading: isConnecting } = useConnect({
-    connector: new InjectedConnector(),
-  });
+  const { connect, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: signer } = useSigner();
 
   const { state, actions, parsedSignature, canSign, matchesMagic } =
     useIsValidSignaturePlayground({
       address: address ?? undefined,
-      signer: signer ?? undefined,
-      provider,
       isConnected,
     });
 
@@ -137,7 +124,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
           </div>
         ) : (
           <button
-            onClick={() => connect()}
+            onClick={() => connect({ connector: injected() })}
             disabled={isConnecting}
             style={{
               padding: "8px 18px",
@@ -253,7 +240,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
           >
             <div>r: {parsedSignature.r}</div>
             <div>s: {parsedSignature.s}</div>
-            <div>v: {parsedSignature.v}</div>
+            <div>v: {parsedSignature.yParity}</div>
           </div>
         )}
       </div>

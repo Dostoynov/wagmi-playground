@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ethers } from "ethers";
-import type { Signer } from "ethers";
-import type { providers } from "ethers";
+import { hashMessage, keccak256, toUtf8Bytes } from "ethers";
+import { useSignMessage, useReadContract } from "wagmi";
 
 import {
-  ERC1271_MAGIC_VALUE,
   ERC1271_ABI,
   HELPER_ABI,
 } from "./constants.general";
@@ -13,12 +11,13 @@ import {
   DEFAULT_TARGET_ADDRESS,
 } from "./constants.related";
 import { validateAddress, validateHash, validateSignature } from "./utils";
+import { Address, Hex, parseSignature } from "viem";
 
 export type PlaygroundState = {
   message: string;
   hashMessage: string;
   rawKeccakHash: string;
-  signature: string;
+  signature: Hex | undefined;
   userAddress: string;
   helperAddress: string;
   targetAddress: string;
@@ -49,7 +48,7 @@ export type PlaygroundActions = {
 export type PlaygroundResult = {
   state: PlaygroundState;
   actions: PlaygroundActions;
-  parsedSignature: ethers.utils.Signature | null;
+  parsedSignature: { r: string; s: string; yParity: number } | null;
   canSign: boolean;
   matchesMagic: {
     helper: boolean;
@@ -59,29 +58,43 @@ export type PlaygroundResult = {
 
 export const useIsValidSignaturePlayground = (
   options: {
-    address?: string;
-    signer?: Signer | null;
-    provider?: providers.Provider;
+    address?: Address;
     isConnected: boolean;
   }
 ): PlaygroundResult => {
-  const { address, signer, provider, isConnected } = options;
-  const [message, setMessage] = useState("");
-  const [hashMessage, setHashMessage] = useState("");
-  const [rawKeccakHash, setRawKeccakHash] = useState("");
-  const [signature, setSignature] = useState("");
+  const { address, isConnected } = options;
+
+  const { signMessageAsync } = useSignMessage();
+  const [message, setMessage] = useState<string>("");
+  const [hashMessageSaved, setHashMessageSaved] = useState<string>("");
+  const [rawKeccakHash, setRawKeccakHash] = useState<string>("");
+  const [signature, setSignature] = useState<Hex | undefined>(undefined);
   const [hashError, setHashError] = useState<string | null>(null);
   const [signError, setSignError] = useState<string | null>(null);
-  const [helperAddress, setHelperAddress] = useState(DEFAULT_HELPER_ADDRESS);
-  const [targetAddress, setTargetAddress] = useState(DEFAULT_TARGET_ADDRESS);
-  const [userAddress, setUserAddress] = useState("");
-  const [helperResult, setHelperResult] = useState<string | null>(null);
+  const [helperAddress, setHelperAddress] = useState<Address>(DEFAULT_HELPER_ADDRESS);
+  const [targetAddress, setTargetAddress] = useState<Address>(DEFAULT_TARGET_ADDRESS);
+  const [userAddress, setUserAddress] = useState<Address>("0x");
+  const [helperResult, setHelperResult] = useState<boolean | null>(null);
   const [helperError, setHelperError] = useState<string | null>(null);
-  const [targetResult, setTargetResult] = useState<string | null>(null);
+  const [targetResult, setTargetResult] = useState<boolean | null>(null);
   const [targetError, setTargetError] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isCallingHelper, setIsCallingHelper] = useState(false);
   const [isCallingTarget, setIsCallingTarget] = useState(false);
+
+  const { refetch: refetchHelper } = useReadContract({
+    address: helperAddress || DEFAULT_HELPER_ADDRESS,
+    abi: HELPER_ABI,
+    functionName: "isValidSignatureWithUser",
+    args: [hashMessageSaved as Hex, signature as Hex, userAddress],
+  });
+
+  const { refetch: refetchTarget } = useReadContract({
+    address: targetAddress || DEFAULT_TARGET_ADDRESS,
+    abi: ERC1271_ABI,
+    functionName: "isValidSignature",
+    args: [hashMessageSaved as Hex, signature as Hex],
+  });
 
   useEffect(() => {
     if (address) {
@@ -96,9 +109,9 @@ export const useIsValidSignaturePlayground = (
     }
 
     try {
-      const eip191Hash = ethers.utils.hashMessage(message);
-      const keccakHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(message));
-      setHashMessage(eip191Hash);
+      const eip191Hash = hashMessage(message as `0x${string}`);
+      const keccakHash = keccak256(toUtf8Bytes(message));
+      setHashMessageSaved(eip191Hash);
       setRawKeccakHash(keccakHash);
       setHashError(null);
     } catch (error: any) {
@@ -108,10 +121,6 @@ export const useIsValidSignaturePlayground = (
 
   const signMessage = useCallback(async () => {
     setSignError(null);
-    if (!signer) {
-      setSignError("Signer недоступен. Подключите кошелек");
-      return;
-    }
     if (!message) {
       setSignError("Введите сообщение для подписи");
       return;
@@ -119,11 +128,11 @@ export const useIsValidSignaturePlayground = (
 
     try {
       setIsSigning(true);
-      const signatureValue = await signer.signMessage(message);
-      const eip191Hash = ethers.utils.hashMessage(message);
-      const keccakHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(message));
+      const signatureValue = await signMessageAsync({ message });
+      const eip191Hash = hashMessage(message as `0x${string}`);
+      const keccakHash = keccak256(toUtf8Bytes(message as `0x${string}`));
       setSignature(signatureValue);
-      setHashMessage(eip191Hash);
+      setHashMessageSaved(eip191Hash);
       setRawKeccakHash(keccakHash);
       setHashError(null);
       if (address) {
@@ -134,15 +143,11 @@ export const useIsValidSignaturePlayground = (
     } finally {
       setIsSigning(false);
     }
-  }, [signer, message, address]);
+  }, [signMessageAsync, message, address]);
 
   const callHelper = useCallback(async () => {
-    if (!provider) {
-      setHelperError("Провайдер не инициализирован");
-      return;
-    }
 
-    const hashValidation = validateHash(hashMessage);
+    const hashValidation = validateHash(hashMessageSaved);
     if (hashValidation) {
       setHelperError(hashValidation);
       return;
@@ -176,33 +181,17 @@ export const useIsValidSignaturePlayground = (
       setIsCallingHelper(true);
       setHelperError(null);
       setHelperResult(null);
-      const contract = new ethers.Contract(helperAddress, HELPER_ABI, provider);
-      const result: string = await contract.isValidSignatureWithUser(
-        hashMessage,
-        signature,
-        userAddress
-      );
-      setHelperResult(result);
+      const { data } = await refetchHelper();
+      setHelperResult((data as any) ?? null);
     } catch (error: any) {
       setHelperError(error?.message ?? "Вызов завершился ошибкой");
     } finally {
       setIsCallingHelper(false);
     }
-  }, [
-    provider,
-    hashMessage,
-    signature,
-    helperAddress,
-    userAddress,
-  ]);
+  }, [refetchHelper, hashMessageSaved, signature, helperAddress, userAddress]);
 
   const callTarget = useCallback(async () => {
-    if (!provider) {
-      setTargetError("Провайдер не инициализирован");
-      return;
-    }
-
-    const hashValidation = validateHash(hashMessage);
+    const hashValidation = validateHash(hashMessageSaved);
     if (hashValidation) {
       setTargetError(hashValidation);
       return;
@@ -227,77 +216,77 @@ export const useIsValidSignaturePlayground = (
       setIsCallingTarget(true);
       setTargetError(null);
       setTargetResult(null);
-      const contract = new ethers.Contract(targetAddress, ERC1271_ABI, provider);
-      const result: string = await contract.isValidSignature(hashMessage, signature);
-      setTargetResult(result);
+      const { data } = await refetchTarget();
+      setTargetResult((data as any) ?? null);
     } catch (error: any) {
       setTargetError(error?.message ?? "Вызов завершился ошибкой");
     } finally {
       setIsCallingTarget(false);
     }
-  }, [provider, hashMessage, signature, targetAddress]);
+  }, [refetchTarget, hashMessageSaved, signature, targetAddress]);
 
-  const parsedSignature = useMemo(() => {
+  const parsedSignature = useMemo((): { r: string; s: string; yParity: number } | null => {
     if (!signature) {
       return null;
     }
     try {
-      return ethers.utils.splitSignature(signature);
+      const sig = parseSignature(signature as `0x${string}`);
+      return { r: sig.r, s: sig.s, yParity: sig.yParity };
     } catch (error) {
       console.warn("Failed to parse signature", error);
       return null;
     }
   }, [signature]);
 
-  const canSign = isConnected && Boolean(signer) && message.length > 0;
+  const canSign = isConnected && message.length > 0;
 
   const matchesMagic = useMemo(
     () => ({
       helper:
-        (helperResult ?? "").toLowerCase() === ERC1271_MAGIC_VALUE.toLowerCase(),
+        (helperResult ?? false) === true,
       target:
-        (targetResult ?? "").toLowerCase() === ERC1271_MAGIC_VALUE.toLowerCase(),
+        (targetResult ?? false) === true,
     }),
     [helperResult, targetResult]
   );
 
   const updateHashMessage = useCallback((value: string) => {
-    setHashMessage(value);
+    setHashMessageSaved(value);
     setHashError(null);
   }, []);
 
   const updateSignature = useCallback((value: string) => {
-    setSignature(value);
+    setSignature(value as Address);
     setSignError(null);
   }, []);
 
   const updateHelperAddress = useCallback((value: string) => {
-    setHelperAddress(value);
+    setHelperAddress(value as Address);
     setHelperError(null);
   }, []);
 
   const updateTargetAddress = useCallback((value: string) => {
-    setTargetAddress(value);
+    setTargetAddress(value as Address);
     setTargetError(null);
   }, []);
 
   const updateUserAddress = useCallback((value: string) => {
-    setUserAddress(value);
+    setUserAddress(value as Address);
     setHelperError(null);
   }, []);
 
   return {
     state: {
       message,
-      hashMessage,
+      hashMessage: hashMessageSaved,
       rawKeccakHash,
       signature,
       userAddress,
       helperAddress,
       targetAddress,
-      helperResult,
+      helperResult: helperResult ? "true" : "false",
       helperError,
-      targetResult,
+      targetResult: targetResult ? "true" : "false",
       targetError,
       hashError,
       signError,

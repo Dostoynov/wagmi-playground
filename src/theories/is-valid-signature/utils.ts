@@ -1,33 +1,34 @@
-import { ethers } from "ethers";
+import { isAddress, isHexString } from "ethers";
+import { Hex } from "viem";
 
 export const validateHash = (hash: string) => {
   if (!hash) {
     return "Укажите хеш";
   }
-  if (!ethers.utils.isHexString(hash)) {
+  if (!isHexString(hash)) {
     return "Хеш должен быть hex-строкой";
   }
-  if (!ethers.utils.isHexString(hash, 32)) {
+  if (!isHexString(hash, 32)) {
     return "Хеш должен соответствовать bytes32";
   }
   return null;
 };
 
-export const validateSignature = (signature: string) => {
+export const validateSignature = (signature: Hex | undefined) => {
   if (!signature) {
     return "Укажите подпись";
   }
-  if (!ethers.utils.isHexString(signature)) {
+  if (!isHexString(signature)) {
     return "Подпись должна быть hex-строкой";
   }
-  if (!ethers.utils.isHexString(signature, 65)) {
+  if (!isHexString(signature, 65)) {
     return "Подпись должна соответствовать 65 байтам";
   }
   return null;
 };
 
 export const validateAddress = (value: string, errorMessage: string) => {
-  if (!ethers.utils.isAddress(value)) {
+  if (!isAddress(value)) {
     return errorMessage;
   }
   return null;

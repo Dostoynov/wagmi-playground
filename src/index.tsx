@@ -1,29 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { WagmiConfig, createClient, configureChains } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
-import { mainnet } from "wagmi/chains";
-import { publicProvider } from "wagmi/providers/public";
-
+import { WagmiProvider } from "wagmi";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
-
-const { chains, provider, webSocketProvider } = configureChains(
-  [mainnet],
-  [publicProvider()]
-);
-
-const client = createClient({
-  autoConnect: true,
-  connectors: [new InjectedConnector({ chains })],
-  provider,
-  webSocketProvider,
-});
+import { wagmiConfig } from "./services/wagmiConfig";
+import { queryClient } from "./services/queryClient";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
-  <WagmiConfig client={client}>
-    <App />
-  </WagmiConfig>
+  <WagmiProvider config={wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </WagmiProvider>
 );
