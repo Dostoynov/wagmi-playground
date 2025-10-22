@@ -1,5 +1,5 @@
 import { isAddress, isHexString } from "ethers";
-import { Hex } from "viem";
+import type { Hex } from "viem";
 
 export const validateHash = (hash: string) => {
   if (!hash) {
