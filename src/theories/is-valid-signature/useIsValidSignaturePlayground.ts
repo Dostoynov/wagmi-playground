@@ -11,7 +11,17 @@ import {
   DEFAULT_TARGET_ADDRESS,
 } from "./constants.related";
 import { validateAddress, validateHash, validateSignature } from "./utils";
-import { Address, Hex, parseSignature } from "viem";
+import { Address, BaseError, Hex, parseSignature } from "viem";
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof BaseError) {
+    return error.shortMessage || error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "Вызов завершился ошибкой";
+};
 
 export type PlaygroundState = {
   message: string;
@@ -21,9 +31,9 @@ export type PlaygroundState = {
   userAddress: string;
   helperAddress: string;
   targetAddress: string;
-  helperResult: string | null;
+  helperResult: Hex | null;
   helperError: string | null;
-  targetResult: string | null;
+  targetResult: Hex | null;
   targetError: string | null;
   hashError: string | null;
   signError: string | null;
@@ -66,34 +76,38 @@ export const useIsValidSignaturePlayground = (
 
   const { signMessageAsync } = useSignMessage();
   const [message, setMessage] = useState<string>("");
-  const [hashMessageSaved, setHashMessageSaved] = useState<string>("");
-  const [rawKeccakHash, setRawKeccakHash] = useState<string>("");
+  const [hashMessageSaved, setHashMessageSaved] = useState<Hex | "">("");
+  const [rawKeccakHash, setRawKeccakHash] = useState<Hex | "">("");
   const [signature, setSignature] = useState<Hex | undefined>(undefined);
   const [hashError, setHashError] = useState<string | null>(null);
   const [signError, setSignError] = useState<string | null>(null);
-  const [helperAddress, setHelperAddress] = useState<Address>(DEFAULT_HELPER_ADDRESS);
-  const [targetAddress, setTargetAddress] = useState<Address>(DEFAULT_TARGET_ADDRESS);
-  const [userAddress, setUserAddress] = useState<Address>("0x");
-  const [helperResult, setHelperResult] = useState<boolean | null>(null);
+  const [helperAddress, setHelperAddress] = useState<string>(DEFAULT_HELPER_ADDRESS);
+  const [targetAddress, setTargetAddress] = useState<string>(DEFAULT_TARGET_ADDRESS);
+  const [userAddress, setUserAddress] = useState<string>(
+    "0x0000000000000000000000000000000000000000"
+  );
+  const [helperResult, setHelperResult] = useState<Hex | null>(null);
   const [helperError, setHelperError] = useState<string | null>(null);
-  const [targetResult, setTargetResult] = useState<boolean | null>(null);
+  const [targetResult, setTargetResult] = useState<Hex | null>(null);
   const [targetError, setTargetError] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isCallingHelper, setIsCallingHelper] = useState(false);
   const [isCallingTarget, setIsCallingTarget] = useState(false);
 
   const { refetch: refetchHelper } = useReadContract({
-    address: helperAddress || DEFAULT_HELPER_ADDRESS,
+    address: (helperAddress || DEFAULT_HELPER_ADDRESS) as Address,
     abi: HELPER_ABI,
     functionName: "isValidSignatureWithUser",
-    args: [hashMessageSaved as Hex, signature as Hex, userAddress],
+    args: [hashMessageSaved as Hex, signature as Hex, userAddress as Address],
+    query: { enabled: false },
   });
 
   const { refetch: refetchTarget } = useReadContract({
-    address: targetAddress || DEFAULT_TARGET_ADDRESS,
+    address: (targetAddress || DEFAULT_TARGET_ADDRESS) as Address,
     abi: ERC1271_ABI,
     functionName: "isValidSignature",
     args: [hashMessageSaved as Hex, signature as Hex],
+    query: { enabled: false },
   });
 
   useEffect(() => {
@@ -109,10 +123,10 @@ export const useIsValidSignaturePlayground = (
     }
 
     try {
-      const eip191Hash = hashMessage(message as `0x${string}`);
+      const eip191Hash = hashMessage(message);
       const keccakHash = keccak256(toUtf8Bytes(message));
-      setHashMessageSaved(eip191Hash);
-      setRawKeccakHash(keccakHash);
+      setHashMessageSaved(eip191Hash as Hex);
+      setRawKeccakHash(keccakHash as Hex);
       setHashError(null);
     } catch (error: any) {
       setHashError(error?.message ?? "Не удалось посчитать хеш");
@@ -129,11 +143,11 @@ export const useIsValidSignaturePlayground = (
     try {
       setIsSigning(true);
       const signatureValue = await signMessageAsync({ message });
-      const eip191Hash = hashMessage(message as `0x${string}`);
-      const keccakHash = keccak256(toUtf8Bytes(message as `0x${string}`));
-      setSignature(signatureValue);
-      setHashMessageSaved(eip191Hash);
-      setRawKeccakHash(keccakHash);
+      const eip191Hash = hashMessage(message);
+      const keccakHash = keccak256(toUtf8Bytes(message));
+      setSignature(signatureValue as Hex);
+      setHashMessageSaved(eip191Hash as Hex);
+      setRawKeccakHash(keccakHash as Hex);
       setHashError(null);
       if (address) {
         setUserAddress(address);
@@ -182,9 +196,9 @@ export const useIsValidSignaturePlayground = (
       setHelperError(null);
       setHelperResult(null);
       const { data } = await refetchHelper();
-      setHelperResult((data as any) ?? null);
-    } catch (error: any) {
-      setHelperError(error?.message ?? "Вызов завершился ошибкой");
+      setHelperResult((data as Hex | undefined) ?? null);
+    } catch (error: unknown) {
+      setHelperError(getErrorMessage(error));
     } finally {
       setIsCallingHelper(false);
     }
@@ -217,9 +231,9 @@ export const useIsValidSignaturePlayground = (
       setTargetError(null);
       setTargetResult(null);
       const { data } = await refetchTarget();
-      setTargetResult((data as any) ?? null);
-    } catch (error: any) {
-      setTargetError(error?.message ?? "Вызов завершился ошибкой");
+      setTargetResult((data as Hex | undefined) ?? null);
+    } catch (error: unknown) {
+      setTargetError(getErrorMessage(error));
     } finally {
       setIsCallingTarget(false);
     }
@@ -230,7 +244,7 @@ export const useIsValidSignaturePlayground = (
       return null;
     }
     try {
-      const sig = parseSignature(signature as `0x${string}`);
+      const sig = parseSignature(signature);
       return { r: sig.r, s: sig.s, yParity: sig.yParity };
     } catch (error) {
       console.warn("Failed to parse signature", error);
@@ -242,36 +256,35 @@ export const useIsValidSignaturePlayground = (
 
   const matchesMagic = useMemo(
     () => ({
-      helper:
-        (helperResult ?? false) === true,
-      target:
-        (targetResult ?? false) === true,
+      helper: (helperResult ?? "").toLowerCase() === ERC1271_MAGIC_VALUE,
+      target: (targetResult ?? "").toLowerCase() === ERC1271_MAGIC_VALUE,
     }),
     [helperResult, targetResult]
   );
 
   const updateHashMessage = useCallback((value: string) => {
-    setHashMessageSaved(value);
+    const normalized = value.trim();
+    setHashMessageSaved(normalized ? (normalized as Hex) : "");
     setHashError(null);
   }, []);
 
   const updateSignature = useCallback((value: string) => {
-    setSignature(value as Address);
+    setSignature(value.trim() ? (value.trim() as Hex) : undefined);
     setSignError(null);
   }, []);
 
   const updateHelperAddress = useCallback((value: string) => {
-    setHelperAddress(value as Address);
+    setHelperAddress(value.trim());
     setHelperError(null);
   }, []);
 
   const updateTargetAddress = useCallback((value: string) => {
-    setTargetAddress(value as Address);
+    setTargetAddress(value.trim());
     setTargetError(null);
   }, []);
 
   const updateUserAddress = useCallback((value: string) => {
-    setUserAddress(value as Address);
+    setUserAddress(value.trim());
     setHelperError(null);
   }, []);
 
@@ -284,9 +297,9 @@ export const useIsValidSignaturePlayground = (
       userAddress,
       helperAddress,
       targetAddress,
-      helperResult: helperResult ? "true" : "false",
+      helperResult,
       helperError,
-      targetResult: targetResult ? "true" : "false",
+      targetResult,
       targetError,
       hashError,
       signError,
