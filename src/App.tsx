@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 
 import { BytecodeSizeExperiment } from "./theories/bytecode-size/BytecodeSizeExperiment";
+import { DelegationExperiment } from "./theories/delegation/DelegationExperiment";
 import { IsValidSignaturePlayground } from "./theories/is-valid-signature/IsValidSignaturePlayground";
 import "./App.css";
 
@@ -14,6 +15,11 @@ const experiments = [
     id: "erc1271",
     label: "ERC-1271 Playground",
     element: <IsValidSignaturePlayground />,
+  },
+  {
+    id: "delegation",
+    label: "EIP-7702 Delegation",
+    element: <DelegationExperiment />,
   },
 ];
 
