@@ -11,9 +11,10 @@ import {
   isHex,
   recoverTypedDataAddress,
 } from "viem";
-import { usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 
 import { AVAILABLE_CHAINS, ERC1271_ABI, ERC1271_MAGIC_VALUE } from "./constants";
+import { buildSamplePermitSingleTypedData } from "./samplePermitTypedData";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof BaseError) {
@@ -33,6 +34,8 @@ const parseJsonInput = <T,>(value: string, errorMessage: string): T => {
   }
 };
 
+const stringifyJson = (value: unknown) => JSON.stringify(value, null, 2);
+
 type TypedDataShape = TypedData | Record<string, { name: string; type: string }[]>;
 type TypedDataMessage = Record<string, unknown>;
 
@@ -51,8 +54,10 @@ type ExperimentState = {
   signatureInput: string;
   payloadForSigning: string | null;
   payloadError: string | null;
+  autogenerateError: string | null;
   typedDataError: string | null;
   isRecovering: boolean;
+  isAutogenerating: boolean;
   claimedSigner: Address | null;
   addressInput: string;
   bytecodeResult: BytecodeResult | null;
@@ -76,6 +81,7 @@ type ExperimentActions = {
   setErc1271Signature: (value: string) => void;
   setChainId: (chainId: number) => void;
   generatePayload: () => void;
+  autogenerateTypedData: () => Promise<void>;
   recoverSigner: () => Promise<void>;
   fetchBytecode: () => Promise<void>;
   checkErc1271: () => Promise<void>;
@@ -109,8 +115,10 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
   const [signatureInput, setSignatureInput] = useState<string>("0x");
   const [payloadForSigning, setPayloadForSigning] = useState<string | null>(null);
   const [payloadError, setPayloadError] = useState<string | null>(null);
+  const [autogenerateError, setAutogenerateError] = useState<string | null>(null);
   const [typedDataError, setTypedDataError] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [isAutogenerating, setIsAutogenerating] = useState(false);
   const [claimedSigner, setClaimedSigner] = useState<Address | null>(null);
   const [addressInput, setAddressInput] = useState<string>("");
   const [bytecodeResult, setBytecodeResult] = useState<BytecodeResult | null>(null);
@@ -123,7 +131,9 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
   const [isChecking1271, setIsChecking1271] = useState(false);
   const [chainId, setChainId] = useState<number>(AVAILABLE_CHAINS[0].id);
 
+  const { address } = useAccount();
   const publicClient = usePublicClient({ chainId });
+  const { data: walletClient } = useWalletClient({ chainId });
 
   useEffect(() => {
     setBytecodeResult(null);
@@ -132,12 +142,70 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setErc1271Error(null);
   }, [chainId]);
 
-  useEffect(() => {
-    setPayloadForSigning(null);
+  const autogenerateTypedData = useCallback(async () => {
+    setAutogenerateError(null);
+    setTypedDataError(null);
     setPayloadError(null);
-  }, [domainInput, typesInput, messageInput, primaryType]);
+    setPayloadForSigning(null);
+    setClaimedSigner(null);
+    setAddressInput("");
+    setBytecodeResult(null);
+    setBytecodeError(null);
+    setErc1271Result(null);
+    setErc1271Error(null);
+
+    if (!walletClient || !address) {
+      setAutogenerateError("Подключите кошелек для подписи");
+      return;
+    }
+
+    const typedData = buildSamplePermitSingleTypedData(chainId);
+
+    try {
+      setIsAutogenerating(true);
+      const signature = await walletClient.signTypedData({
+        account: address as Address,
+        domain: typedData.domain,
+        types: typedData.types,
+        primaryType: typedData.primaryType,
+        message: typedData.message,
+      });
+
+      const payload = stringifyJson({
+        domain: typedData.domain,
+        types: typedData.types,
+        primaryType: typedData.primaryType,
+        message: typedData.message,
+      });
+
+      setDomainInput(stringifyJson(typedData.domain));
+      setTypesInput(stringifyJson(typedData.types));
+      setMessageInput(stringifyJson(typedData.message));
+      setPrimaryType(typedData.primaryType);
+      setSignatureInput(signature);
+      setErc1271Signature(signature);
+      setPayloadForSigning(payload);
+
+      try {
+        const digest = hashTypedData({
+          domain: typedData.domain,
+          types: typedData.types,
+          primaryType: typedData.primaryType,
+          message: typedData.message,
+        });
+        setHashInput(digest);
+      } catch (error) {
+        console.warn("Не удалось посчитать hashTypedData", error);
+      }
+    } catch (error) {
+      setAutogenerateError(getErrorMessage(error));
+    } finally {
+      setIsAutogenerating(false);
+    }
+  }, [address, chainId, walletClient]);
 
   const generatePayload = useCallback(() => {
+    setAutogenerateError(null);
     setPayloadError(null);
     setPayloadForSigning(null);
     try {
@@ -164,16 +232,12 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
         throw new Error("Указанный primaryType отсутствует в types");
       }
 
-      const payload = JSON.stringify(
-        {
-          types: typedData,
-          domain,
-          primaryType,
-          message,
-        },
-        null,
-        2,
-      );
+      const payload = stringifyJson({
+        types: typedData,
+        domain,
+        primaryType,
+        message,
+      });
 
       setPayloadForSigning(payload);
     } catch (error) {
@@ -312,22 +376,71 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     }
   }, [addressInput, erc1271Signature, hashInput, publicClient]);
 
+  const handleDomainInput = useCallback((value: string) => {
+    setDomainInput(value);
+    setPayloadForSigning(null);
+    setPayloadError(null);
+    setAutogenerateError(null);
+  }, []);
+
+  const handleTypesInput = useCallback((value: string) => {
+    setTypesInput(value);
+    setPayloadForSigning(null);
+    setPayloadError(null);
+    setAutogenerateError(null);
+  }, []);
+
+  const handleMessageInput = useCallback((value: string) => {
+    setMessageInput(value);
+    setPayloadForSigning(null);
+    setPayloadError(null);
+    setAutogenerateError(null);
+  }, []);
+
+  const handlePrimaryType = useCallback((value: string) => {
+    setPrimaryType(value);
+    setPayloadForSigning(null);
+    setPayloadError(null);
+    setAutogenerateError(null);
+  }, []);
+
+  const handleSignatureInput = useCallback((value: string) => {
+    setSignatureInput(value);
+    setAutogenerateError(null);
+  }, []);
+
+  const handleAddressInput = useCallback((value: string) => {
+    setAddressInput(value);
+    setAutogenerateError(null);
+  }, []);
+
   const actions = useMemo<ExperimentActions>(() => ({
-    setDomainInput,
-    setTypesInput,
-    setMessageInput,
-    setPrimaryType,
-    setSignatureInput,
-    setAddressInput,
+    setDomainInput: handleDomainInput,
+    setTypesInput: handleTypesInput,
+    setMessageInput: handleMessageInput,
+    setPrimaryType: handlePrimaryType,
+    setSignatureInput: handleSignatureInput,
+    setAddressInput: handleAddressInput,
     setHashInput,
     setErc1271Signature,
     setChainId,
     generatePayload,
+    autogenerateTypedData,
     recoverSigner,
     fetchBytecode,
     checkErc1271,
   }), [
+    handleDomainInput,
+    handleTypesInput,
+    handleMessageInput,
+    handlePrimaryType,
+    handleSignatureInput,
+    handleAddressInput,
+    setHashInput,
+    setErc1271Signature,
+    setChainId,
     generatePayload,
+    autogenerateTypedData,
     recoverSigner,
     fetchBytecode,
     checkErc1271,
@@ -341,8 +454,10 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     signatureInput,
     payloadForSigning,
     payloadError,
+    autogenerateError,
     typedDataError,
     isRecovering,
+    isAutogenerating,
     claimedSigner,
     addressInput,
     bytecodeResult,

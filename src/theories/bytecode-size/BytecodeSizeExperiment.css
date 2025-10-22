@@ -34,6 +34,59 @@
   color: #111827;
 }
 
+.bytecode-wallet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.bytecode-wallet-address {
+  font-size: 13px;
+  background: #eef2ff;
+  color: #1f2937;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.bytecode-connect-button,
+.bytecode-disconnect-button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.bytecode-connect-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.bytecode-disconnect-button {
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.bytecode-connect-button:disabled,
+.bytecode-disconnect-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.bytecode-connect-button:not(:disabled):hover,
+.bytecode-disconnect-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
+}
+
 .bytecode-label {
   font-size: 12px;
   font-weight: 600;
@@ -211,6 +264,10 @@
 }
 
 .bytecode-actions .bytecode-ghost-button {
+  margin-top: 0;
+}
+
+.bytecode-actions .bytecode-secondary-button {
   margin-top: 0;
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { injected, useAccount, useConnect, useDisconnect } from "wagmi";
 
 import { ERC1271_MAGIC_VALUE } from "./constants";
 import { isErc1271MagicValue, useBytecodeSizeExperiment } from "./useBytecodeSizeExperiment";
@@ -8,6 +9,9 @@ export const BytecodeSizeExperiment: React.FC = () => {
   const { state, actions, chainId, chains } = useBytecodeSizeExperiment();
   const activeChain = chains.find((chain) => chain.id === chainId);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const { address, isConnected } = useAccount();
+  const { connect, isPending: isConnecting } = useConnect();
+  const { disconnect } = useDisconnect();
 
   useEffect(() => {
     if (copyState === "idle") {
@@ -44,6 +48,31 @@ export const BytecodeSizeExperiment: React.FC = () => {
 
       <div className="bytecode-card">
         <h2 className="bytecode-section-title">1. Восстановление EIP-712 подписанта</h2>
+        <div className="bytecode-wallet-row">
+          {isConnected ? (
+            <>
+              <span className="bytecode-wallet-address">
+                Подключен: <code>{address}</code>
+              </span>
+              <button
+                className="bytecode-disconnect-button"
+                onClick={() => disconnect()}
+                type="button"
+              >
+                Отключить
+              </button>
+            </>
+          ) : (
+            <button
+              className="bytecode-connect-button"
+              onClick={() => connect({ connector: injected() })}
+              disabled={isConnecting}
+              type="button"
+            >
+              {isConnecting ? "Подключение..." : "Подключить кошелек"}
+            </button>
+          )}
+        </div>
         <div className="bytecode-field">
           <label className="bytecode-label">Сеть для запросов</label>
           <select
@@ -126,7 +155,16 @@ export const BytecodeSizeExperiment: React.FC = () => {
           >
             Сформировать payload для подписи
           </button>
+          <button
+            className="bytecode-secondary-button"
+            onClick={actions.autogenerateTypedData}
+            disabled={state.isAutogenerating}
+            type="button"
+          >
+            {state.isAutogenerating ? "Подписание..." : "Автогенерация и подпись"}
+          </button>
         </div>
+        {state.autogenerateError && <div className="bytecode-error">{state.autogenerateError}</div>}
         {state.payloadError && <div className="bytecode-error">{state.payloadError}</div>}
         {state.payloadForSigning && (
           <div className="bytecode-payload">
