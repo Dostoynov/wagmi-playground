@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Address,
+  type Address,
   BaseError,
-  Hex,
-  TypedData,
-  TypedDataDomain,
+  type Hex,
+  type TypedData,
+  type TypedDataDomain,
   getAddress,
   hashTypedData,
   isAddress,
@@ -28,13 +28,16 @@ const getErrorMessage = (error: unknown) => {
 
 const parseJsonInput = <T,>(value: string, errorMessage: string): T => {
   try {
-    return JSON.parse(value) as T;
+    return JSON.parse(
+      value,
+      (_, v) => (typeof v === "bigint" ? v.toString() : v)
+    ) as T;
   } catch (error) {
     throw new Error(errorMessage);
   }
 };
 
-const stringifyJson = (value: unknown) => JSON.stringify(value, null, 2);
+const stringifyJson = (value: unknown) => JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v), 2);
 
 type TypedDataShape = TypedData | Record<string, { name: string; type: string }[]>;
 type TypedDataMessage = Record<string, unknown>;
@@ -163,6 +166,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
 
     try {
       setIsAutogenerating(true);
+
       const signature = await walletClient.signTypedData({
         account: address as Address,
         domain: typedData.domain,
@@ -198,6 +202,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
         console.warn("Не удалось посчитать hashTypedData", error);
       }
     } catch (error) {
+      console.error("autogenerateTypedData error:", error);
       setAutogenerateError(getErrorMessage(error));
     } finally {
       setIsAutogenerating(false);

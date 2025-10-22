@@ -1,8 +1,8 @@
-import { Address } from "viem";
+import type { Address } from "viem";
 
-const PERMIT2_CONTRACT_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
-const USDC_TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0Ce3606eb48";
-const SAMPLE_SPENDER_ADDRESS = "0x1111111254fb6c44bac0bed2854e76f90643097d";
+const PERMIT2_CONTRACT_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3".toLowerCase();
+const USDC_TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0Ce3606eb48".toLowerCase();
+const SAMPLE_SPENDER_ADDRESS = "0x1111111254fb6c44bac0bed2854e76f90643097d".toLowerCase();
 
 const getDefaultTimestamps = () => {
   const now = Math.floor(Date.now() / 1000);
@@ -19,7 +19,7 @@ export const buildSamplePermitSingleTypedData = (chainId: number) => {
 
   const domain = {
     name: "Permit2",
-    chainId,
+    chainId: BigInt(chainId),
     verifyingContract: PERMIT2_CONTRACT_ADDRESS as Address,
   } as const;
 
@@ -45,12 +45,12 @@ export const buildSamplePermitSingleTypedData = (chainId: number) => {
   const message = {
     details: {
       token: USDC_TOKEN_ADDRESS as Address,
-      amount: 1_000_000,
+      amount: 1000000n,
       expiration,
       nonce: 1,
     },
     spender: SAMPLE_SPENDER_ADDRESS as Address,
-    sigDeadline: deadline,
+    sigDeadline: BigInt(deadline),
   } as const;
 
   return {

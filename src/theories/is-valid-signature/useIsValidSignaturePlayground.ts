@@ -100,7 +100,7 @@ export const useIsValidSignaturePlayground = (
     abi: HELPER_ABI,
     functionName: "isValidSignatureWithUser",
     args: [hashMessageSaved as Hex, signature as Hex, userAddress as Address],
-    query: { enabled: false },
+    query: { enabled: true },
   });
 
   const { refetch: refetchTarget } = useReadContract({
@@ -108,7 +108,7 @@ export const useIsValidSignaturePlayground = (
     abi: ERC1271_ABI,
     functionName: "isValidSignature",
     args: [hashMessageSaved as Hex, signature as Hex],
-    query: { enabled: false },
+    query: { enabled: true },
   });
 
   useEffect(() => {
@@ -160,7 +160,7 @@ export const useIsValidSignaturePlayground = (
     }
   }, [signMessageAsync, message, address]);
 
-  const callHelper = useCallback(async () => {
+  const callHelper = async () => {
 
     const hashValidation = validateHash(hashMessageSaved);
     if (hashValidation) {
@@ -196,14 +196,17 @@ export const useIsValidSignaturePlayground = (
       setIsCallingHelper(true);
       setHelperError(null);
       setHelperResult(null);
+      console.log("callHelper: refetchHelper result before call");
       const { data } = await refetchHelper();
+      console.log("callHelper: refetchHelper result after", data);
       setHelperResult((data as Hex | undefined) ?? null);
     } catch (error: unknown) {
+      console.error("callHelper error:", error);
       setHelperError(getErrorMessage(error));
     } finally {
       setIsCallingHelper(false);
     }
-  }, [refetchHelper, hashMessageSaved, signature, helperAddress, userAddress]);
+  };
 
   const callTarget = useCallback(async () => {
     const hashValidation = validateHash(hashMessageSaved);
