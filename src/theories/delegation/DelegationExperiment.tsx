@@ -7,16 +7,24 @@ import {
   useDisconnect,
   useWalletClient,
 } from "wagmi";
-import { isAddress, numberToHex } from "viem";
+import { type WalletSendCallsParameters, isAddress, numberToHex } from "viem";
 
 import "./DelegationExperiment.css";
 
-type SendCallsParams = {
-  from: `0x${string}`;
-  chainId?: `0x${string}`;
-  delegations?: Record<string, unknown>[];
-  revocations?: Record<string, unknown>[];
-  calls?: Record<string, unknown>[];
+type DelegationCapability = {
+  delegate: `0x${string}`;
+  authority: `0x${string}`;
+  caveats?: readonly unknown[];
+};
+
+type RevocationCapability = {
+  delegate: `0x${string}`;
+  authority: `0x${string}`;
+};
+
+type DelegationSendCallsPayload = WalletSendCallsParameters[0] & {
+  delegations?: readonly DelegationCapability[];
+  revocations?: readonly RevocationCapability[];
 };
 
 const toHexChainId = (chainId?: number) =>
@@ -66,13 +74,15 @@ export const DelegationExperiment: React.FC = () => {
     setDelegateError(null);
     setDelegateResponse(null);
 
-    const payload: SendCallsParams = {
+    const payload: DelegationSendCallsPayload = {
       from: address,
       chainId: chainIdHex,
+      version: "2.0.0",
+      atomicRequired: false,
       delegations: [
         {
           delegate: contract,
-          authorityAddress: address,
+          authority: address,
           caveats: [],
         },
       ],
@@ -113,13 +123,15 @@ export const DelegationExperiment: React.FC = () => {
     setUndelegateError(null);
     setUndelegateResponse(null);
 
-    const payload: SendCallsParams = {
+    const payload: DelegationSendCallsPayload = {
       from: address,
       chainId: chainIdHex,
+      version: "2.0.0",
+      atomicRequired: false,
       revocations: [
         {
           delegate: contract,
-          authorityAddress: address,
+          authority: address,
         },
       ],
       calls: [],
