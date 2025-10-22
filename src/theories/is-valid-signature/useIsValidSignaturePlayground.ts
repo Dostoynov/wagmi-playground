@@ -4,6 +4,7 @@ import { useSignMessage, useReadContract } from "wagmi";
 
 import {
   ERC1271_ABI,
+  ERC1271_MAGIC_VALUE,
   HELPER_ABI,
 } from "./constants.general";
 import {
