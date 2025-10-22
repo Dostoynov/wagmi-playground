@@ -84,7 +84,8 @@
 }
 
 .bytecode-primary-button,
-.bytecode-secondary-button {
+.bytecode-secondary-button,
+.bytecode-ghost-button {
   border: none;
   border-radius: 8px;
   padding: 10px 18px;
@@ -104,8 +105,16 @@
   color: #ffffff;
 }
 
+.bytecode-ghost-button {
+  margin-top: 8px;
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
 .bytecode-primary-button:disabled,
-.bytecode-secondary-button:disabled {
+.bytecode-secondary-button:disabled,
+.bytecode-ghost-button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
@@ -113,7 +122,8 @@
 }
 
 .bytecode-primary-button:not(:disabled):hover,
-.bytecode-secondary-button:not(:disabled):hover {
+.bytecode-secondary-button:not(:disabled):hover,
+.bytecode-ghost-button:not(:disabled):hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
 }
@@ -187,4 +197,47 @@
 
 .bytecode-select {
   background: #ffffff;
+}
+
+.bytecode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bytecode-actions .bytecode-primary-button {
+  margin-top: 0;
+}
+
+.bytecode-actions .bytecode-ghost-button {
+  margin-top: 0;
+}
+
+.bytecode-payload {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.bytecode-payload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.bytecode-payload-header .bytecode-ghost-button {
+  margin-top: 0;
+  padding: 6px 12px;
+}
+
+.bytecode-payload .bytecode-pre {
+  margin: 0;
+  border-radius: 0 0 10px 10px;
 }

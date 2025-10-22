@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import { ERC1271_MAGIC_VALUE } from "./constants";
 import { isErc1271MagicValue, useBytecodeSizeExperiment } from "./useBytecodeSizeExperiment";
@@ -7,6 +7,32 @@ import "./BytecodeSizeExperiment.css";
 export const BytecodeSizeExperiment: React.FC = () => {
   const { state, actions, chainId, chains } = useBytecodeSizeExperiment();
   const activeChain = chains.find((chain) => chain.id === chainId);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+
+  useEffect(() => {
+    if (copyState === "idle") {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setCopyState("idle"), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [copyState]);
+
+  const handleCopyPayload = async () => {
+    if (!state.payloadForSigning) {
+      return;
+    }
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(state.payloadForSigning);
+        setCopyState("copied");
+      } else {
+        throw new Error("Clipboard API недоступен");
+      }
+    } catch (error) {
+      console.warn("Не удалось скопировать payload", error);
+      setCopyState("error");
+    }
+  };
 
   return (
     <div className="bytecode-container">
@@ -84,13 +110,43 @@ export const BytecodeSizeExperiment: React.FC = () => {
             />
           </div>
         </div>
-        <button
-          className="bytecode-primary-button"
-          onClick={actions.recoverSigner}
-          disabled={state.isRecovering}
-        >
-          {state.isRecovering ? "Восстановление..." : "Восстановить адрес"}
-        </button>
+        <div className="bytecode-actions">
+          <button
+            className="bytecode-primary-button"
+            onClick={actions.recoverSigner}
+            disabled={state.isRecovering}
+            type="button"
+          >
+            {state.isRecovering ? "Восстановление..." : "Восстановить адрес"}
+          </button>
+          <button
+            className="bytecode-ghost-button"
+            onClick={actions.generatePayload}
+            type="button"
+          >
+            Сформировать payload для подписи
+          </button>
+        </div>
+        {state.payloadError && <div className="bytecode-error">{state.payloadError}</div>}
+        {state.payloadForSigning && (
+          <div className="bytecode-payload">
+            <div className="bytecode-payload-header">
+              <span>eth_signTypedData_v4 payload</span>
+              <button
+                className="bytecode-ghost-button"
+                onClick={handleCopyPayload}
+                type="button"
+              >
+                {copyState === "copied"
+                  ? "Скопировано"
+                  : copyState === "error"
+                    ? "Ошибка копирования"
+                    : "Скопировать"}
+              </button>
+            </div>
+            <pre className="bytecode-pre">{state.payloadForSigning}</pre>
+          </div>
+        )}
         {state.typedDataError && (
           <div className="bytecode-error">{state.typedDataError}</div>
         )}

@@ -49,6 +49,8 @@ type ExperimentState = {
   messageInput: string;
   primaryType: string;
   signatureInput: string;
+  payloadForSigning: string | null;
+  payloadError: string | null;
   typedDataError: string | null;
   isRecovering: boolean;
   claimedSigner: Address | null;
@@ -73,6 +75,7 @@ type ExperimentActions = {
   setHashInput: (value: string) => void;
   setErc1271Signature: (value: string) => void;
   setChainId: (chainId: number) => void;
+  generatePayload: () => void;
   recoverSigner: () => Promise<void>;
   fetchBytecode: () => Promise<void>;
   checkErc1271: () => Promise<void>;
@@ -104,6 +107,8 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
   const [messageInput, setMessageInput] = useState<string>("{}");
   const [primaryType, setPrimaryType] = useState<string>("");
   const [signatureInput, setSignatureInput] = useState<string>("0x");
+  const [payloadForSigning, setPayloadForSigning] = useState<string | null>(null);
+  const [payloadError, setPayloadError] = useState<string | null>(null);
   const [typedDataError, setTypedDataError] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
   const [claimedSigner, setClaimedSigner] = useState<Address | null>(null);
@@ -126,6 +131,55 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setErc1271Result(null);
     setErc1271Error(null);
   }, [chainId]);
+
+  useEffect(() => {
+    setPayloadForSigning(null);
+    setPayloadError(null);
+  }, [domainInput, typesInput, messageInput, primaryType]);
+
+  const generatePayload = useCallback(() => {
+    setPayloadError(null);
+    setPayloadForSigning(null);
+    try {
+      const domain = parseJsonInput<TypedDataDomain>(
+        domainInput,
+        "Domain должен быть валидным JSON",
+      );
+      const types = parseJsonInput<TypedDataShape>(
+        typesInput,
+        "Types должны быть валидным JSON",
+      );
+      const message = parseJsonInput<TypedDataMessage>(
+        messageInput,
+        "Message должен быть валидным JSON",
+      );
+
+      if (!primaryType) {
+        throw new Error("Укажите primaryType");
+      }
+
+      const typedData = types as TypedData;
+
+      if (!typedData[primaryType as keyof typeof typedData]) {
+        throw new Error("Указанный primaryType отсутствует в types");
+      }
+
+      const payload = JSON.stringify(
+        {
+          types: typedData,
+          domain,
+          primaryType,
+          message,
+        },
+        null,
+        2,
+      );
+
+      setPayloadForSigning(payload);
+    } catch (error) {
+      setPayloadError(getErrorMessage(error));
+    }
+  }, [domainInput, typesInput, messageInput, primaryType]);
 
   const recoverSigner = useCallback(async () => {
     setTypedDataError(null);
@@ -268,10 +322,12 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setHashInput,
     setErc1271Signature,
     setChainId,
+    generatePayload,
     recoverSigner,
     fetchBytecode,
     checkErc1271,
   }), [
+    generatePayload,
     recoverSigner,
     fetchBytecode,
     checkErc1271,
@@ -283,6 +339,8 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     messageInput,
     primaryType,
     signatureInput,
+    payloadForSigning,
+    payloadError,
     typedDataError,
     isRecovering,
     claimedSigner,
