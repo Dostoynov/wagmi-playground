@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   injected,
   useAccount,
@@ -10,11 +10,6 @@ import {
 import { isAddress, numberToHex } from "viem";
 
 import "./DelegationExperiment.css";
-
-type WalletRequestFn = (args: {
-  method: string;
-  params?: unknown[];
-}) => Promise<unknown>;
 
 type SendCallsParams = {
   from: `0x${string}`;
@@ -28,19 +23,6 @@ const toHexChainId = (chainId?: number) =>
   chainId ? (numberToHex(BigInt(chainId)) as `0x${string}`) : undefined;
 
 const sanitizeContractAddress = (value: string) => value.trim();
-
-const getWalletRequest = (walletClient: ReturnType<typeof useWalletClient>["data"]) => {
-  if (!walletClient) {
-    return null;
-  }
-
-  const request = (walletClient as unknown as { request?: WalletRequestFn }).request;
-  if (!request) {
-    return null;
-  }
-
-  return request;
-};
 
 export const DelegationExperiment: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -61,13 +43,13 @@ export const DelegationExperiment: React.FC = () => {
 
   const canInteract = isConnected && Boolean(address);
 
-  const request = useMemo(() => getWalletRequest(walletClient), [walletClient]);
-
   const resolvedChainId = walletClient?.chain?.id ?? chainId ?? undefined;
   const chainIdHex = toHexChainId(resolvedChainId);
 
   const handleDelegate = async () => {
-    if (!address || !request) {
+    const client = walletClient;
+
+    if (!address || !client?.request) {
       setDelegateError("Кошелек не подключен или не поддерживает wallet_sendCalls");
       setDelegateStatus("error");
       return;
@@ -98,7 +80,7 @@ export const DelegationExperiment: React.FC = () => {
     };
 
     try {
-      const response = await request({
+      const response = await client.request({
         method: "wallet_sendCalls",
         params: [payload],
       });
@@ -112,7 +94,9 @@ export const DelegationExperiment: React.FC = () => {
   };
 
   const handleUndelegate = async () => {
-    if (!address || !request) {
+    const client = walletClient;
+
+    if (!address || !client?.request) {
       setUndelegateError("Кошелек не подключен или не поддерживает wallet_sendCalls");
       setUndelegateStatus("error");
       return;
@@ -142,7 +126,7 @@ export const DelegationExperiment: React.FC = () => {
     };
 
     try {
-      const response = await request({
+      const response = await client.request({
         method: "wallet_sendCalls",
         params: [payload],
       });
