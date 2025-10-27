@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 
 import { BytecodeSizeExperiment } from "./theories/bytecode-size/BytecodeSizeExperiment";
-import { DelegationExperiment } from "./theories/delegation/DelegationExperiment";
 import { DelegationUiExperiment } from "./theories/delegation2/DelegationExperiment";
 import { IsValidSignaturePlayground } from "./theories/is-valid-signature/IsValidSignaturePlayground";
 import "./App.css";

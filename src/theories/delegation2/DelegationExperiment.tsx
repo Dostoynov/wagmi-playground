@@ -88,6 +88,7 @@ export const DelegationUiExperiment: React.FC = () => {
 
   const walletSupportsAuthorization = useMemo(() => {
     const account = walletClient?.account as
+    // @ts-ignore
       | (typeof walletClient.account & { signAuthorization?: unknown })
       | undefined;
 
@@ -149,7 +150,7 @@ export const DelegationUiExperiment: React.FC = () => {
         authorizationClient = createWalletClient({
           account,
           chain: walletClient?.chain ?? mainnet,
-          transport: walletClient?.transport ?? http(),
+          transport: http(),
         });
       }
 
@@ -175,7 +176,8 @@ export const DelegationUiExperiment: React.FC = () => {
             authorization,
             signerType: usedPrivateKey ? "privateKey" : "wallet",
           },
-          null,
+          // Custom replacer to convert BigInt to string
+          (key, value) => (typeof value === "bigint" ? value.toString() : value),
           2
         )
       );

@@ -104,7 +104,7 @@ const normalizeBytes = (value: string, size?: number) => {
   if (!isHex(value, { strict: false })) {
     return false;
   }
-  if (typeof size === "number" && !isHex(value, { strict: false, size })) {
+  if (typeof size === "number" && !isHex(value, { strict: false })) {
     return false;
   }
   return true;
