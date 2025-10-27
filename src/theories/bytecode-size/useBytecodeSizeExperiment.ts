@@ -328,7 +328,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     try {
       setIsFetchingBytecode(true);
       const normalized = getAddress(addressInput as Address);
-      const bytecode = await publicClient.getBytecode({ address: normalized });
+      const bytecode = await publicClient.getCode({ address: normalized });
       const size = bytecode && bytecode !== "0x" ? (bytecode.length - 2) / 2 : 0;
       const isContract = Boolean(bytecode && bytecode !== "0x");
       setBytecodeResult({
