@@ -6,7 +6,14 @@ import {
   useWalletClient,
 } from "wagmi";
 import { mainnet } from "wagmi/chains";
-import { Address, zeroAddress } from "viem";
+import {
+  Address,
+  Hex,
+  createWalletClient,
+  http,
+  zeroAddress,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { getDeleGatorEnvironment } from "@metamask/delegation-toolkit";
 
 import "./DelegationExperiment.css";
@@ -46,6 +53,7 @@ export const DelegationUiExperiment: React.FC = () => {
     delegatePresets[0].id
   );
   const [customAddress, setCustomAddress] = useState<string>("");
+  const [privateKeyInput, setPrivateKeyInput] = useState<string>("");
   const [delegateStatus, setDelegateStatus] = useState<
     "idle" | "pending" | "success" | "error"
   >("idle");
@@ -69,6 +77,31 @@ export const DelegationUiExperiment: React.FC = () => {
     return `${address.slice(0, 6)}…${address.slice(-4)}`;
   }, [address]);
 
+  const normalizedPrivateKey = useMemo(() => {
+    const trimmed = privateKeyInput.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    return (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as Hex;
+  }, [privateKeyInput]);
+
+  const walletSupportsAuthorization = useMemo(() => {
+    const account = walletClient?.account as
+      | (typeof walletClient.account & { signAuthorization?: unknown })
+      | undefined;
+
+    if (!account) {
+      return false;
+    }
+
+    if (account.type !== "local") {
+      return false;
+    }
+
+    return typeof account.signAuthorization === "function";
+  }, [walletClient?.account]);
+
   const handleConnect = async () => {
     if (!connectors?.length) {
       return;
@@ -85,12 +118,6 @@ export const DelegationUiExperiment: React.FC = () => {
   };
 
   const handleDelegate = async () => {
-    if (!walletClient || !walletClient.account) {
-      setDelegateStatus("error");
-      setDelegateError("Подключите кошелёк, чтобы подписать делегацию.");
-      return;
-    }
-
     if (!currentContractAddress) {
       setDelegateStatus("error");
       setDelegateError("Введите адрес контракта для делегации.");
@@ -102,13 +129,38 @@ export const DelegationUiExperiment: React.FC = () => {
     setDelegateResponse(null);
 
     try {
-      const authorization = await walletClient.signAuthorization({
-        account: walletClient.account,
+      let authorizationAccount = walletClient?.account;
+      let authorizationClient = walletClient;
+      let usedPrivateKey: string | null = null;
+
+      if (!authorizationAccount || !walletSupportsAuthorization) {
+        if (!normalizedPrivateKey) {
+          throw new Error(
+            authorizationAccount
+              ? "Кошелёк не поддерживает подписание EIP-7702. Введите приватный ключ ниже."
+              : "Подключите кошелёк или введите приватный ключ, чтобы подписать делегацию."
+          );
+        }
+
+        const account = privateKeyToAccount(normalizedPrivateKey);
+        authorizationAccount = account;
+        usedPrivateKey = normalizedPrivateKey;
+
+        authorizationClient = createWalletClient({
+          account,
+          chain: walletClient?.chain ?? mainnet,
+          transport: walletClient?.transport ?? http(),
+        });
+      }
+
+      const authorization = await authorizationClient!.signAuthorization({
+        account: authorizationAccount!,
         contractAddress: currentContractAddress as Address,
         executor: "self",
       });
 
-      const hash = await walletClient.sendTransaction({
+      const hash = await authorizationClient!.sendTransaction({
+        account: authorizationAccount!,
         authorizationList: [authorization],
         data: "0x",
         to: zeroAddress,
@@ -121,6 +173,7 @@ export const DelegationUiExperiment: React.FC = () => {
             hash,
             contractAddress: currentContractAddress,
             authorization,
+            signerType: usedPrivateKey ? "privateKey" : "wallet",
           },
           null,
           2
@@ -174,6 +227,11 @@ export const DelegationUiExperiment: React.FC = () => {
           {connectError && (
             <div className="delegation-hint delegation-hint--error">{connectError.message}</div>
           )}
+          {isConnected && !walletSupportsAuthorization && (
+            <div className="delegation-hint">
+              Подключённый кошелёк не поддерживает подписание EIP-7702. Используйте приватный ключ ниже.
+            </div>
+          )}
         </section>
 
         <section className="delegation-section">
@@ -216,6 +274,21 @@ export const DelegationUiExperiment: React.FC = () => {
               </div>
             </label>
           </div>
+        </section>
+
+        <section className="delegation-section">
+          <h2 className="delegation-section-title">Резервный доступ по приватному ключу</h2>
+          <p className="delegation-hint">
+            Если ваш PK не начинается с 0x, просто подпишите это в начале.
+          </p>
+          <input
+            className="delegation-input"
+            type="password"
+            placeholder="0x..."
+            spellCheck={false}
+            value={privateKeyInput}
+            onChange={(event) => setPrivateKeyInput(event.target.value)}
+          />
         </section>
 
         <section className="delegation-section">
