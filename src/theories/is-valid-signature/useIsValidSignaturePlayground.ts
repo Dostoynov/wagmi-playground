@@ -21,7 +21,7 @@ const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Вызов завершился ошибкой";
+  return "The call failed";
 };
 
 export type PlaygroundState = {
@@ -119,7 +119,7 @@ export const useIsValidSignaturePlayground = (
 
   const computeHashes = useCallback(() => {
     if (!message) {
-      setHashError("Введите сообщение для хеширования");
+      setHashError("Enter a message to hash");
       return;
     }
 
@@ -130,14 +130,14 @@ export const useIsValidSignaturePlayground = (
       setRawKeccakHash(keccakHash as Hex);
       setHashError(null);
     } catch (error: any) {
-      setHashError(error?.message ?? "Не удалось посчитать хеш");
+      setHashError(error?.message ?? "Failed to compute the hash");
     }
   }, [message]);
 
   const signMessage = useCallback(async () => {
     setSignError(null);
     if (!message) {
-      setSignError("Введите сообщение для подписи");
+      setSignError("Enter a message to sign");
       return;
     }
 
@@ -154,7 +154,7 @@ export const useIsValidSignaturePlayground = (
         setUserAddress(address);
       }
     } catch (error: any) {
-      setSignError(error?.message ?? "Не удалось подписать сообщение");
+      setSignError(error?.message ?? "Failed to sign the message");
     } finally {
       setIsSigning(false);
     }
@@ -176,7 +176,7 @@ export const useIsValidSignaturePlayground = (
 
     const helperAddressValidation = validateAddress(
       helperAddress,
-      "Укажите корректный адрес helper-контракта"
+      "Enter a valid helper contract address"
     );
     if (helperAddressValidation) {
       setHelperError(helperAddressValidation);
@@ -185,7 +185,7 @@ export const useIsValidSignaturePlayground = (
 
     const userAddressValidation = validateAddress(
       userAddress,
-      "Укажите корректный адрес пользователя"
+      "Enter a valid user address"
     );
     if (userAddressValidation) {
       setHelperError(userAddressValidation);
@@ -223,7 +223,7 @@ export const useIsValidSignaturePlayground = (
 
     const targetAddressValidation = validateAddress(
       targetAddress,
-      "Укажите корректный адрес контракта"
+      "Enter a valid contract address"
     );
     if (targetAddressValidation) {
       setTargetError(targetAddressValidation);

@@ -17,8 +17,8 @@ const ResultMessage: React.FC<{ value: string | null; error: string | null; matc
     if (value) {
       return (
         <div className={matched ? "result-success" : "result-warning"}>
-          Ответ: {value}{" "}
-          {matched ? "(валидная подпись)" : "(значение отличается от magic)"}
+          Response: {value}{" "}
+          {matched ? "(signature is valid)" : "(value differs from magic)"}
         </div>
       );
     }
@@ -43,14 +43,14 @@ export const IsValidSignaturePlayground: React.FC = () => {
         ERC-1271 Playground
       </h1>
       <p className="description">
-        Подпишите сообщение и проверьте работу <code>isValidSignature</code> на подготовленном helper
-        контракте или на любом другом адресе.
+        Sign a message and test <code>isValidSignature</code> on the prepared helper contract or any
+        other address.
       </p>
 
       <div className="connection-container">
         {isConnected ? (
           <div className="connected-info">
-            <span className="connected-text">Подключен: {address}</span>
+            <span className="connected-text">Connected: {address}</span>
             <button
               onClick={() => disconnect()}
               className="disconnect-button"
@@ -64,16 +64,16 @@ export const IsValidSignaturePlayground: React.FC = () => {
             disabled={isConnecting}
             className="connect-button"
           >
-            {isConnecting ? "Подключение..." : "Подключить кошелек"}
+            {isConnecting ? "Connecting..." : "Connect wallet"}
           </button>
         )}
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2 className="section-title">1. Формирование данных для подписи</h2>
-        <label className="label">Сообщение</label>
+        <h2 className="section-title">1. Prepare data for signing</h2>
+        <label className="label">Message</label>
         <textarea
-          placeholder="Введите произвольную строку"
+          placeholder="Enter any string"
           value={state.message}
           onChange={(e) => actions.setMessage(e.target.value)}
           rows={3}
@@ -85,14 +85,14 @@ export const IsValidSignaturePlayground: React.FC = () => {
             onClick={actions.computeHashes}
             className="compute-button"
           >
-            Посчитать хеши
+            Compute hashes
           </button>
           <button
             onClick={actions.signMessage}
             disabled={!canSign || state.isSigning}
             className="sign-button"
           >
-            {state.isSigning ? "Подписание..." : "Подписать через кошелек"}
+            {state.isSigning ? "Signing..." : "Sign with wallet"}
           </button>
         </div>
 
@@ -123,7 +123,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
             />
           </div>
           <div>
-            <label className="label">Подпись</label>
+            <label className="label">Signature</label>
             <textarea
               value={state.signature}
               onChange={(e) => actions.setSignature(e.target.value)}
@@ -144,13 +144,13 @@ export const IsValidSignaturePlayground: React.FC = () => {
       </div>
 
       <div className="card">
-        <h2 className="section-title">2. Проверка через helper контракт</h2>
+        <h2 className="section-title">2. Verification via helper contract</h2>
         <p className="helper-description">
-          Контракт проксирует вызов, позволяя передать адрес пользователя вручную.
+          The contract proxies the call, letting you supply the user address manually.
         </p>
         <div className="inputs-grid">
           <div>
-            <label className="label">Helper контракт</label>
+            <label className="label">Helper contract</label>
             <input
               value={state.helperAddress}
               onChange={(e) => actions.setHelperAddress(e.target.value)}
@@ -158,7 +158,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
             />
           </div>
           <div>
-            <label className="label">Адрес пользователя (user)</label>
+            <label className="label">User address (user)</label>
             <input
               value={state.userAddress}
               onChange={(e) => actions.setUserAddress(e.target.value)}
@@ -172,7 +172,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
           disabled={state.isCallingHelper}
           className="helper-button"
         >
-          {state.isCallingHelper ? "Запрос..." : "Вызвать isValidSignatureWithUser"}
+          {state.isCallingHelper ? "Requesting..." : "Call isValidSignatureWithUser"}
         </button>
         <ResultMessage
           value={state.helperResult}
@@ -182,12 +182,12 @@ export const IsValidSignaturePlayground: React.FC = () => {
       </div>
 
       <div className="card">
-        <h2 className="section-title">3. Прямой вызов isValidSignature</h2>
+        <h2 className="section-title">3. Direct isValidSignature call</h2>
         <p className="target-description">
-          Используйте для проверки других контрактов. Если вызов завершается revert-ом, значит подпись не
-          поддерживается текущей реализацией.
+          Use this to test other contracts. If the call reverts, the signature is not supported by the
+          current implementation.
         </p>
-        <label className="label">Адрес контракта</label>
+        <label className="label">Contract address</label>
         <input
           value={state.targetAddress}
           onChange={(e) => actions.setTargetAddress(e.target.value)}
@@ -198,7 +198,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
           disabled={state.isCallingTarget}
           className="target-button"
         >
-          {state.isCallingTarget ? "Запрос..." : "Вызвать isValidSignature"}
+          {state.isCallingTarget ? "Requesting..." : "Call isValidSignature"}
         </button>
         <ResultMessage
           value={state.targetResult}
@@ -208,7 +208,7 @@ export const IsValidSignaturePlayground: React.FC = () => {
       </div>
 
       <div className="magic-info">
-        Ожидаемое magic значение: <code>{ERC1271_MAGIC_VALUE}</code>.
+        Expected magic value: <code>{ERC1271_MAGIC_VALUE}</code>.
       </div>
     </div>
   );

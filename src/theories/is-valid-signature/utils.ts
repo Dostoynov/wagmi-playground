@@ -3,26 +3,26 @@ import type { Hex } from "viem";
 
 export const validateHash = (hash: string) => {
   if (!hash) {
-    return "Укажите хеш";
+    return "Enter a hash";
   }
   if (!isHexString(hash)) {
-    return "Хеш должен быть hex-строкой";
+    return "Hash must be a hex string";
   }
   if (!isHexString(hash, 32)) {
-    return "Хеш должен соответствовать bytes32";
+    return "Hash must be a bytes32 hex string";
   }
   return null;
 };
 
 export const validateSignature = (signature: Hex | undefined) => {
   if (!signature) {
-    return "Укажите подпись";
+    return "Enter a signature";
   }
   if (!isHexString(signature)) {
-    return "Подпись должна быть hex-строкой";
+    return "Signature must be a hex string";
   }
   if (!isHexString(signature, 65)) {
-    return "Подпись должна соответствовать 65 байтам";
+    return "Signature must be 65 bytes long";
   }
   return null;
 };
