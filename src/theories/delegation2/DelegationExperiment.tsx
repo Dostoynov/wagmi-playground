@@ -24,20 +24,20 @@ const delegatePresets = [
   {
     id: "metamask",
     label: "MetaMask Smart Account",
-    description: "Делегирует управление смарт-аккаунту MetaMask.",
+    description: "Delegates control to the MetaMask smart account.",
     address: metamaskEnvironment.implementations.EIP7702StatelessDeleGatorImpl,
   },
   {
     id: "null",
     label: "Null address",
-    description: "Отменяет текущую делегацию, отправляя её на нулевой адрес.",
+    description: "Cancels the current delegation by sending it to the null address.",
     address: zeroAddress,
   },
   {
     id: "safepal",
     label: "SafePal account",
     description:
-      "Используйте этот адрес, если нужно воспроизвести проблему с isValidSignature.",
+      "Use this address if you need to reproduce the isValidSignature issue.",
     address: "0xb15bed8fc30d3e82672bf7cd75417b414983934b" as Address,
   },
 ] as const;
@@ -113,7 +113,7 @@ export const DelegationUiExperiment: React.FC = () => {
       await connectAsync({ connector: connectors[0] });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Не удалось подключить кошелёк.";
+        error instanceof Error ? error.message : "Failed to connect the wallet.";
       setDelegateError(message);
     }
   };
@@ -121,7 +121,7 @@ export const DelegationUiExperiment: React.FC = () => {
   const handleDelegate = async () => {
     if (!currentContractAddress) {
       setDelegateStatus("error");
-      setDelegateError("Введите адрес контракта для делегации.");
+      setDelegateError("Enter a contract address for the delegation.");
       return;
     }
 
@@ -138,8 +138,8 @@ export const DelegationUiExperiment: React.FC = () => {
         if (!normalizedPrivateKey) {
           throw new Error(
             authorizationAccount
-              ? "Кошелёк не поддерживает подписание EIP-7702. Введите приватный ключ ниже."
-              : "Подключите кошелёк или введите приватный ключ, чтобы подписать делегацию."
+              ? "The wallet does not support signing EIP-7702. Enter the private key below."
+              : "Connect a wallet or enter a private key to sign the delegation."
           );
         }
 
@@ -185,7 +185,7 @@ export const DelegationUiExperiment: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Не удалось выполнить делегацию. Попробуйте ещё раз.";
+          : "Failed to submit the delegation. Please try again.";
       setDelegateStatus("error");
       setDelegateError(message);
     }
@@ -196,13 +196,13 @@ export const DelegationUiExperiment: React.FC = () => {
       <header className="delegation-header">
         <h1 className="delegation-title">Delegation Toolkit Playground</h1>
         <p className="delegation-description">
-          Подключите кошелёк, выберите адрес делегата и подпишите EIP-7702 авторизацию.
+          Connect a wallet, choose a delegate address, and sign an EIP-7702 authorization.
         </p>
       </header>
 
       <div className="delegation-card">
         <section className="delegation-section">
-          <h2 className="delegation-section-title">Подключение кошелька</h2>
+          <h2 className="delegation-section-title">Wallet connection</h2>
           <div className="delegation-connect">
             {isConnected ? (
               <div className="delegation-connected">
@@ -212,7 +212,7 @@ export const DelegationUiExperiment: React.FC = () => {
                   className="delegation-button"
                   onClick={() => disconnect()}
                 >
-                  Отключить
+                  Disconnect
                 </button>
               </div>
             ) : (
@@ -222,7 +222,7 @@ export const DelegationUiExperiment: React.FC = () => {
                 onClick={handleConnect}
                 disabled={connectStatus === "pending"}
               >
-                {connectStatus === "pending" ? "Подключение..." : "Подключить кошелёк"}
+                {connectStatus === "pending" ? "Connecting..." : "Connect wallet"}
               </button>
             )}
           </div>
@@ -231,13 +231,13 @@ export const DelegationUiExperiment: React.FC = () => {
           )}
           {isConnected && !walletSupportsAuthorization && (
             <div className="delegation-hint">
-              Подключённый кошелёк не поддерживает подписание EIP-7702. Используйте приватный ключ ниже.
+              The connected wallet does not support signing EIP-7702. Use the private key below.
             </div>
           )}
         </section>
 
         <section className="delegation-section">
-          <h2 className="delegation-section-title">Адрес делегата</h2>
+          <h2 className="delegation-section-title">Delegate address</h2>
           <div className="delegation-option-list">
             {delegatePresets.map((option) => (
               <label key={option.id} className="delegation-option">
@@ -264,7 +264,7 @@ export const DelegationUiExperiment: React.FC = () => {
                 onChange={() => setSelectedOption("custom")}
               />
               <div className="delegation-option-body">
-                <span className="delegation-option-label">Свой адрес</span>
+                <span className="delegation-option-label">Custom address</span>
                 <input
                   className="delegation-input"
                   placeholder="0x..."
@@ -279,9 +279,9 @@ export const DelegationUiExperiment: React.FC = () => {
         </section>
 
         <section className="delegation-section">
-          <h2 className="delegation-section-title">Резервный доступ по приватному ключу</h2>
+          <h2 className="delegation-section-title">Fallback access via private key</h2>
           <p className="delegation-hint">
-            Если ваш PK не начинается с 0x, просто подпишите это в начале.
+            If your PK does not start with 0x, simply add it to the beginning.
           </p>
           <input
             className="delegation-input"
@@ -300,14 +300,14 @@ export const DelegationUiExperiment: React.FC = () => {
             onClick={handleDelegate}
             disabled={delegateStatus === "pending"}
           >
-            {delegateStatus === "pending" ? "Подписание..." : "Подписать делегацию"}
+            {delegateStatus === "pending" ? "Signing..." : "Sign delegation"}
           </button>
 
           {delegateError && <div className="delegation-hint delegation-hint--error">{delegateError}</div>}
 
           {delegateResponse && (
             <div className="delegation-response">
-              <span className="delegation-response-title">Ответ кошелька</span>
+              <span className="delegation-response-title">Wallet response</span>
               <pre className="delegation-pre">{delegateResponse}</pre>
             </div>
           )}

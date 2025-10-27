@@ -30,10 +30,10 @@ export const BytecodeSizeExperiment: React.FC = () => {
         await navigator.clipboard.writeText(state.payloadForSigning);
         setCopyState("copied");
       } else {
-        throw new Error("Clipboard API недоступен");
+        throw new Error("Clipboard API is unavailable");
       }
     } catch (error) {
-      console.warn("Не удалось скопировать payload", error);
+      console.warn("Failed to copy the payload", error);
       setCopyState("error");
     }
   };
@@ -42,24 +42,24 @@ export const BytecodeSizeExperiment: React.FC = () => {
     <div className="bytecode-container">
       <h1 className="bytecode-title">Bytecode Size Playground</h1>
       <p className="bytecode-description">
-        Восстановите адрес подписанта через EIP-712, получите байткод и определите, является ли он
-        EOA или смарт-контракт. При необходимости дополнительно вызовите <code>isValidSignature</code>.
+        Recover the signer address via EIP-712, fetch the bytecode, and determine whether it is an EOA
+        or a smart contract. Optionally, call <code>isValidSignature</code>.
       </p>
 
       <div className="bytecode-card">
-        <h2 className="bytecode-section-title">1. Восстановление EIP-712 подписанта</h2>
+        <h2 className="bytecode-section-title">1. Recover the EIP-712 signer</h2>
         <div className="bytecode-wallet-row">
           {isConnected ? (
             <>
               <span className="bytecode-wallet-address">
-                Подключен: <code>{address}</code>
+                Connected: <code>{address}</code>
               </span>
               <button
                 className="bytecode-disconnect-button"
                 onClick={() => disconnect()}
                 type="button"
               >
-                Отключить
+                Disconnect
               </button>
             </>
           ) : (
@@ -69,12 +69,12 @@ export const BytecodeSizeExperiment: React.FC = () => {
               disabled={isConnecting}
               type="button"
             >
-              {isConnecting ? "Подключение..." : "Подключить кошелек"}
+              {isConnecting ? "Connecting..." : "Connect wallet"}
             </button>
           )}
         </div>
         <div className="bytecode-field">
-          <label className="bytecode-label">Сеть для запросов</label>
+          <label className="bytecode-label">Network for requests</label>
           <select
             className="bytecode-select"
             value={chainId}
@@ -126,7 +126,7 @@ export const BytecodeSizeExperiment: React.FC = () => {
               className="bytecode-input"
               value={state.primaryType}
               onChange={(event) => actions.setPrimaryType(event.target.value)}
-              placeholder="Например, PermitSingle"
+              placeholder="For example, PermitSingle"
             />
           </div>
           <div className="bytecode-field">
@@ -146,14 +146,14 @@ export const BytecodeSizeExperiment: React.FC = () => {
             disabled={state.isRecovering}
             type="button"
           >
-            {state.isRecovering ? "Восстановление..." : "Восстановить адрес"}
+            {state.isRecovering ? "Recovering..." : "Recover address"}
           </button>
           <button
             className="bytecode-ghost-button"
             onClick={actions.generatePayload}
             type="button"
           >
-            Сформировать payload для подписи
+            Generate payload for signing
           </button>
           <button
             className="bytecode-secondary-button"
@@ -161,7 +161,7 @@ export const BytecodeSizeExperiment: React.FC = () => {
             disabled={state.isAutogenerating}
             type="button"
           >
-            {state.isAutogenerating ? "Подписание..." : "Автогенерация и подпись"}
+            {state.isAutogenerating ? "Signing..." : "Autogenerate and sign"}
           </button>
         </div>
         {state.autogenerateError && <div className="bytecode-error">{state.autogenerateError}</div>}
@@ -176,10 +176,10 @@ export const BytecodeSizeExperiment: React.FC = () => {
                 type="button"
               >
                 {copyState === "copied"
-                  ? "Скопировано"
+                  ? "Copied"
                   : copyState === "error"
-                    ? "Ошибка копирования"
-                    : "Скопировать"}
+                    ? "Copy error"
+                    : "Copy"}
               </button>
             </div>
             <pre className="bytecode-pre">{state.payloadForSigning}</pre>
@@ -191,7 +191,7 @@ export const BytecodeSizeExperiment: React.FC = () => {
         {state.claimedSigner && (
           <div className="bytecode-info">
             <div>
-              Подписант: <code>{state.claimedSigner}</code>
+              Signer: <code>{state.claimedSigner}</code>
             </div>
             {state.hashInput && (
               <div>
@@ -203,12 +203,13 @@ export const BytecodeSizeExperiment: React.FC = () => {
       </div>
 
       <div className="bytecode-card">
-        <h2 className="bytecode-section-title">2. Получение байткода</h2>
+        <h2 className="bytecode-section-title">2. Fetch the bytecode</h2>
         <p className="bytecode-hint">
-          Адрес можно изменить вручную, например, чтобы проверить контракт, не связанный с подписью.
+          You can change the address manually, for example to inspect a contract unrelated to the
+          signature.
         </p>
         <div className="bytecode-field">
-          <label className="bytecode-label">Адрес для проверки</label>
+          <label className="bytecode-label">Address to inspect</label>
           <input
             className="bytecode-input"
             value={state.addressInput}
@@ -221,7 +222,7 @@ export const BytecodeSizeExperiment: React.FC = () => {
           onClick={actions.fetchBytecode}
           disabled={state.isFetchingBytecode}
         >
-          {state.isFetchingBytecode ? "Запрос..." : "Получить байткод"}
+          {state.isFetchingBytecode ? "Requesting..." : "Fetch bytecode"}
         </button>
         {state.bytecodeError && (
           <div className="bytecode-error">{state.bytecodeError}</div>
@@ -229,20 +230,20 @@ export const BytecodeSizeExperiment: React.FC = () => {
         {state.bytecodeResult && (
           <div className="bytecode-summary">
             <div>
-              Сеть: <strong>{activeChain?.name ?? "Unknown"}</strong>
+              Network: <strong>{activeChain?.name ?? "Unknown"}</strong>
             </div>
             <div>
-              Адрес: <code>{state.bytecodeResult.address}</code>
+              Address: <code>{state.bytecodeResult.address}</code>
             </div>
             <div>
-              Размер байткода: <strong>{state.bytecodeResult.size}</strong> байт
+              Bytecode size: <strong>{state.bytecodeResult.size}</strong> bytes
             </div>
             <div>
-              Тип подписанта: {state.bytecodeResult.isContract ? "смарт-контракт" : "EOA (externally owned account)"}
+              Signer type: {state.bytecodeResult.isContract ? "smart contract" : "EOA (externally owned account)"}
             </div>
             {state.bytecodeResult.bytecode && state.bytecodeResult.bytecode !== "0x" && (
               <details className="bytecode-details">
-                <summary>Показать байткод</summary>
+                <summary>Show bytecode</summary>
                 <pre className="bytecode-pre">{state.bytecodeResult.bytecode}</pre>
               </details>
             )}
@@ -251,9 +252,9 @@ export const BytecodeSizeExperiment: React.FC = () => {
       </div>
 
       <div className="bytecode-card">
-        <h2 className="bytecode-section-title">3. Проверка ERC-1271 (опционально)</h2>
+        <h2 className="bytecode-section-title">3. Check ERC-1271 (optional)</h2>
         <p className="bytecode-hint">
-          Вызов <code>isValidSignature</code> полезен для контрактных кошельков. Ожидаемое magic значение —
+          Calling <code>isValidSignature</code> is useful for contract wallets. The expected magic value is
           <code> {ERC1271_MAGIC_VALUE}</code>.
         </p>
         <div className="bytecode-field">
@@ -280,7 +281,7 @@ export const BytecodeSizeExperiment: React.FC = () => {
           onClick={actions.checkErc1271}
           disabled={state.isChecking1271}
         >
-          {state.isChecking1271 ? "Вызов..." : "Вызвать isValidSignature"}
+          {state.isChecking1271 ? "Calling..." : "Call isValidSignature"}
         </button>
         {state.erc1271Error && (
           <div className="bytecode-error">{state.erc1271Error}</div>
@@ -293,10 +294,10 @@ export const BytecodeSizeExperiment: React.FC = () => {
                 : "bytecode-warning"
             }
           >
-            Контракт вернул: <code>{state.erc1271Result}</code>{" "}
+            Contract returned: <code>{state.erc1271Result}</code>{" "}
             {isErc1271MagicValue(state.erc1271Result)
-              ? "— подпись валидна"
-              : "— значение отличается от magic"}
+              ? "— signature is valid"
+              : "— value differs from magic"}
           </div>
         )}
       </div>

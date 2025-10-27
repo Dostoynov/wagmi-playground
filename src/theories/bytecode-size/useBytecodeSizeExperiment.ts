@@ -23,7 +23,7 @@ const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Неизвестная ошибка";
+  return "Unknown error";
 };
 
 const parseJsonInput = <T,>(value: string, errorMessage: string): T => {
@@ -158,7 +158,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setErc1271Error(null);
 
     if (!walletClient || !address) {
-      setAutogenerateError("Подключите кошелек для подписи");
+      setAutogenerateError("Connect a wallet to sign");
       return;
     }
 
@@ -199,7 +199,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
         });
         setHashInput(digest);
       } catch (error) {
-        console.warn("Не удалось посчитать hashTypedData", error);
+        console.warn("Failed to compute hashTypedData", error);
       }
     } catch (error) {
       console.error("autogenerateTypedData error:", error);
@@ -216,25 +216,25 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     try {
       const domain = parseJsonInput<TypedDataDomain>(
         domainInput,
-        "Domain должен быть валидным JSON",
+        "Domain must be valid JSON",
       );
       const types = parseJsonInput<TypedDataShape>(
         typesInput,
-        "Types должны быть валидным JSON",
+        "Types must be valid JSON",
       );
       const message = parseJsonInput<TypedDataMessage>(
         messageInput,
-        "Message должен быть валидным JSON",
+        "Message must be valid JSON",
       );
 
       if (!primaryType) {
-        throw new Error("Укажите primaryType");
+        throw new Error("Specify primaryType");
       }
 
       const typedData = types as TypedData;
 
       if (!typedData[primaryType as keyof typeof typedData]) {
-        throw new Error("Указанный primaryType отсутствует в types");
+        throw new Error("The provided primaryType is missing in types");
       }
 
       const payload = stringifyJson({
@@ -256,23 +256,23 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     try {
       const domain = parseJsonInput<TypedDataDomain>(
         domainInput,
-        "Domain должен быть валидным JSON"
+        "Domain must be valid JSON"
       );
       const types = parseJsonInput<TypedDataShape>(
         typesInput,
-        "Types должны быть валидным JSON"
+        "Types must be valid JSON"
       );
       const message = parseJsonInput<TypedDataMessage>(
         messageInput,
-        "Message должен быть валидным JSON"
+        "Message must be valid JSON"
       );
       const typedData = types as TypedData;
 
       if (!primaryType) {
-        throw new Error("Укажите primaryType");
+        throw new Error("Specify primaryType");
       }
       if (!normalizeBytes(signatureInput, 65)) {
-        throw new Error("Подпись должна быть валидной hex-строкой длиной 65 байт");
+        throw new Error("Signature must be a valid 65-byte hex string");
       }
 
       const recovered = await recoverTypedDataAddress({
@@ -300,7 +300,7 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
         });
         setHashInput(digest);
       } catch (error) {
-        console.warn("Не удалось посчитать hashTypedData", error);
+        console.warn("Failed to compute hashTypedData", error);
       }
     } catch (error) {
       setTypedDataError(getErrorMessage(error));
@@ -313,15 +313,15 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setBytecodeError(null);
     setBytecodeResult(null);
     if (!publicClient) {
-      setBytecodeError("Публичный клиент еще не инициализирован");
+      setBytecodeError("The public client has not been initialized yet");
       return;
     }
     if (!addressInput) {
-      setBytecodeError("Укажите адрес для проверки");
+      setBytecodeError("Enter an address to inspect");
       return;
     }
     if (!isAddress(addressInput)) {
-      setBytecodeError("Адрес должен быть валидным");
+      setBytecodeError("Address must be valid");
       return;
     }
 
@@ -348,19 +348,19 @@ export const useBytecodeSizeExperiment = (): ExperimentResult => {
     setErc1271Error(null);
     setErc1271Result(null);
     if (!publicClient) {
-      setErc1271Error("Публичный клиент еще не инициализирован");
+      setErc1271Error("The public client has not been initialized yet");
       return;
     }
     if (!addressInput || !isAddress(addressInput)) {
-      setErc1271Error("Укажите корректный адрес для вызова");
+      setErc1271Error("Enter a valid address to call");
       return;
     }
     if (!normalizeBytes(hashInput, 32)) {
-      setErc1271Error("hash должен быть bytes32 hex-строкой");
+      setErc1271Error("hash must be a bytes32 hex string");
       return;
     }
     if (!normalizeBytes(erc1271Signature)) {
-      setErc1271Error("signature должна быть hex-строкой");
+      setErc1271Error("signature must be a hex string");
       return;
     }
 
