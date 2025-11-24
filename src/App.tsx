@@ -8,7 +8,7 @@ import "./App.css";
 const experiments = [
   {
     id: "bytecode",
-    label: "Bytecode Size",
+    label: "Size of Bytecode",
     element: <BytecodeSizeExperiment />,
   },
   {
